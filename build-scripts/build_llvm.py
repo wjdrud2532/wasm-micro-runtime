@@ -70,7 +70,7 @@ def build_llvm(llvm_dir, platform, backends, projects, use_clang=False, extra_fl
 
     # ccache is not available on Windows
     if not "windows" == platform:
-        LLVM_COMPILE_OPTIONS.append("-DLLVM_CCACHE_BUILD:BOOL=ON")
+        LLVM_COMPILE_OPTIONS.append("-DLLVM_CCACHE_BUILD:BOOL=OFF")
     # perf support is available on Linux only
     if "linux" == platform:
         LLVM_COMPILE_OPTIONS.append("-DLLVM_USE_PERF:BOOL=ON")
