@@ -47,6 +47,24 @@ def query_llvm_version(llvm_info):
     response = response.json()
     return response['sha']
 
+# 현재 시스템 아키텍쳐 확인
+def get_system_architecture():
+    import platform
+    return platform.machine()
+
+# 파일에서 wamr build target 추출
+def get_wamr_build_target(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            for line in file:
+                if line.strip().startswith('set(WAMR_BUILD_TARGET'):
+                    # 'set(WAMR_BUILD_TARGET AARCH64)' 형태에서 'AARCH64' 추출
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        return parts[1].strip('()')
+    except FileNotFoundError:
+        print(f"File not found: {file_path}")
+    return None
 
 def build_llvm(llvm_dir, platform, backends, projects, use_clang=False, extra_flags=''):
     LLVM_COMPILE_OPTIONS = [
@@ -66,7 +84,24 @@ def build_llvm(llvm_dir, platform, backends, projects, use_clang=False, extra_fl
         "-DLLVM_INCLUDE_UTILS:BOOL=OFF",
         "-DLLVM_INCLUDE_TESTS:BOOL=OFF",
         "-DLLVM_OPTIMIZED_TABLEGEN:BOOL=ON",
+
+
+        # 현재 시스템 아키텍처가 x86_64인지 확인
+        if get_system_architecture() == 'x86_64':
+            wamr_build_target = get_wamr_build_target('../../sample/littlevgl/wamr_config_littlevgl.cmake')
+            
+            if wamr_build_target == 'AARCH64':      # 크로스 컴파일인 경우
+                LLVM_COMPILE_OPTIONS.extend([
+                    "-DCMAKE_SYSTEM_NAME=Linux",
+                    "-DCMAKE_SYSTEM_PROCESSOR=aarch64",
+                    "-DLLVM_HOST_TRIPLE=aarch64-linux-gnu",
+                    "-DLLVM_DEFAULT_TARGET_TRIPLE=aarch64-linux-gnu",
+                    "-DCMAKE_C_COMPILER=/usr/bin/aarch64-linux-gnu-gcc",
+                    "-DCMAKE_CXX_COMPILER=/usr/bin/aarch64-linux-gnu-g++"
+                ])
     ]
+
+
 
     # ccache is not available on Windows
     if not "windows" == platform:
